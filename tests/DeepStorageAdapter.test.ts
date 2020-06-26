@@ -1,4 +1,4 @@
-import DeepStorageAdapter, { IKeyStorage, FLAT_TOKEN } from '../src/DeepStorageAdapter';
+import DeepStorageAdapter, { IKeyStorage, FLAT_TOKEN } from '../src';
 
 class MemStore implements IKeyStorage {
     data: { [key: string]: string } = {};
