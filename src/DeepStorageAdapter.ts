@@ -145,7 +145,10 @@ export default class DeepStorageAdapter {
     }
 
     private _decodeValue(data: string): any {
-        if (typeof data === 'undefined' || !data.startsWith('{')) {
+        if (typeof data === 'undefined' || data === null) {
+            return undefined;
+        }
+        if (!(data?.startsWith('{'))) {
             return data;
         }
         let value: any = data;
