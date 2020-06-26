@@ -1,2 +1,3 @@
 export * from './DeepStorageAdapter';
-export { default as DeepAsyncStore } from './DeepStorageAdapter';
+import DeepStorageAdapter from './DeepStorageAdapter';
+export default DeepStorageAdapter;
