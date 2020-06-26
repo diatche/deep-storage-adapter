@@ -1,0 +1,43 @@
+{
+    "name": "deep-storage-adapter",
+    "version": "0.0.1",
+    "description": "Turns a flat key-value store into a pseudo-document store.",
+    "main": "dist/index.js",
+    "module": "dist/index.mjs",
+    "browser": "dist/index.umd.js",
+    "files": [
+        "dist"
+    ],
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "test": "jest",
+        "coverage": "jest --coverage",
+        "gun": "cd node_modules/gun && npm start",
+        "build": "rollup -c",
+        "watch": "rollup -c -w",
+        "prepack": "rm -R dist 2> /dev/null; rollup -c"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/diatche/deep-storage-adapter.git"
+    },
+    "author": "Pavel Diatchenko <diatche@gmail.com>",
+    "keywords": [
+        "key storage",
+        "key-value store",
+        "document storage"
+    ],
+    "license": "MIT",
+    "dependencies": {
+        "@types/flat": "^5.0.1",
+        "flat": "^5.0.0"
+    },
+    "devDependencies": {
+        "@types/jest": "^25.2.3",
+        "jest": "^26.0.1",
+        "rollup": "^2.16.1",
+        "rollup-plugin-typescript2": "^0.27.1",
+        "ts-jest": "^26.1.0",
+        "typescript": "^3.9.3"
+    }
+}
