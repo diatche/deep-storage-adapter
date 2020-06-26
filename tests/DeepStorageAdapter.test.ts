@@ -2,9 +2,14 @@ import DeepStorageAdapter, { IKeyStorage, FLAT_TOKEN } from '../src';
 
 class MemStore implements IKeyStorage {
     data: { [key: string]: string } = {};
+    notFoundMarker: any = undefined;
 
     getItem(key: string) {
-        return this.data[key];
+        if (key in this.data) {
+            return this.data[key];
+        } else {
+            return this.notFoundMarker;
+        }
     }
 
     setItem(key: string, val: string) {
@@ -76,6 +81,19 @@ describe('DeepStorageAdapter', () => {
             expect(data).toMatchObject({ 'new': 'x' });
             expect(Object.keys(memStore.data)).toContain(FLAT_TOKEN + 'foo/new');
             expect(Object.keys(memStore.data)).not.toContain(FLAT_TOKEN + 'foo/bar');
+        });
+
+        it('should return undefined when key not found', async () => {
+            let x = await deepStore.getItem('foo');
+            expect(x).toBeUndefined();
+        });
+
+        it('should return undefined when key not found with null marker', async () => {
+            let memStore = new MemStore();
+            memStore.notFoundMarker = null;
+            let deepStore = new DeepStorageAdapter(memStore);
+            let x = await deepStore.getItem('foo');
+            expect(x).toBeUndefined();
         });
     });
 
