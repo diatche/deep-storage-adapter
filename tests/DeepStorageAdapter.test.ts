@@ -1,4 +1,4 @@
-import DeepStorageAdapter, { IKeyStorage, FLAT_TOKEN } from '../src';
+import DeepStorageAdapter, { IKeyStorage, FLAT_TOKEN, IEncoder } from '../src';
 
 class MemStore implements IKeyStorage {
     data: { [key: string]: string } = {};
@@ -27,13 +27,32 @@ class MemStore implements IKeyStorage {
     }
 }
 
-let memStore = new MemStore();
-let deepStore = new DeepStorageAdapter(memStore);
+class Encoder implements IEncoder {
+
+    encode(value: string): string {
+        return `_A_${value}_Z_`;
+    }
+
+    decode(data: string): string {
+        if (!/_A_.*_Z_/.test(data)) {
+            throw new Error('Invalid data');
+        }
+        return data.slice(3, data.length - 3);
+    }
+}
+
+let store = new MemStore();
+let encoder = new Encoder();
+let deepStore = new DeepStorageAdapter({
+    store,
+    encoder,
+    delimiter: '.'
+});
 
 describe('DeepStorageAdapter', () => {
 
     afterEach(() => {
-        memStore.clear();
+        store.clear();
     });
 
     describe('saveItem / loadItem', () => {
@@ -42,6 +61,8 @@ describe('DeepStorageAdapter', () => {
             await deepStore.setItem('foo', 'bar');
             let val = await deepStore.getItem('foo');
             expect(val).toBe('bar');
+            // Check encoding
+            expect(store.data['foo']).toBe('_A_bar_Z_');
         });
 
         it('should save and load a number value', async () => {
@@ -79,8 +100,8 @@ describe('DeepStorageAdapter', () => {
             await deepStore.setItem('foo', { 'new': 'x' });
             let data = await deepStore.getItem('foo');
             expect(data).toMatchObject({ 'new': 'x' });
-            expect(Object.keys(memStore.data)).toContain(FLAT_TOKEN + 'foo/new');
-            expect(Object.keys(memStore.data)).not.toContain(FLAT_TOKEN + 'foo/bar');
+            expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.new');
+            expect(Object.keys(store.data)).not.toContain(FLAT_TOKEN + 'foo.bar');
         });
 
         it('should return undefined when key not found', async () => {
@@ -89,9 +110,9 @@ describe('DeepStorageAdapter', () => {
         });
 
         it('should return undefined when key not found with null marker', async () => {
-            let memStore = new MemStore();
-            memStore.notFoundMarker = null;
-            let deepStore = new DeepStorageAdapter(memStore);
+            let store = new MemStore();
+            store.notFoundMarker = null;
+            let deepStore = new DeepStorageAdapter({ store });
             let x = await deepStore.getItem('foo');
             expect(x).toBeUndefined();
         });
@@ -103,14 +124,14 @@ describe('DeepStorageAdapter', () => {
             await deepStore.setItem('a', 'b');
             await deepStore.setItem('x', 1);
             await deepStore.removeItem('a');
-            expect(Object.keys(memStore.data)).toEqual(['x']);
+            expect(Object.keys(store.data)).toEqual(['x']);
         });
 
         it('should remove object values', async () => {
             await deepStore.setItem('foo', { 'bar': 123 });
             await deepStore.setItem('x', 1);
             await deepStore.removeItem('foo');
-            expect(Object.keys(memStore.data)).toEqual(['x']);
+            expect(Object.keys(store.data)).toEqual(['x']);
         });
     });
 
@@ -120,7 +141,7 @@ describe('DeepStorageAdapter', () => {
             await deepStore.setItem('a', 'b');
             await deepStore.setItem('x', 1);
             await deepStore.clear();
-            expect(Object.keys(memStore.data)).toEqual([]);
+            expect(Object.keys(store.data)).toEqual([]);
         });
     });
 });

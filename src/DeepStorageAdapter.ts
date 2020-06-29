@@ -2,7 +2,9 @@ import flatten, { unflatten } from 'flat';
 
 export const FLAT_TOKEN = '__flat__';
 export const FLAT_LIST = '__list__';
-export const ENC_KEY = '__$';
+export const ENC_KEY = '__enc';
+
+const DELIMITER = '.';
 
 export interface IKeyStorage {
     getItem(key: string): Promise<any> | any;
@@ -12,15 +14,49 @@ export interface IKeyStorage {
     clear?: () => Promise<void> | void;
 }
 
+export interface IEncoder {
+    encode(value: string): string;
+    decode(data: string): string;
+}
+
 /**
  * Turns a flat key-value store into a pseudo-document
  * store. All objects are converted to individual entries.
+ * The adapter does not store anything itself.
  */
 export default class DeepStorageAdapter {
-    readonly store: IKeyStorage
+    /**
+     * The underlying storage. The adapter does not store
+     * anything itself.
+     **/
+    readonly store: IKeyStorage;
+    /**
+     * The encoder used for values.
+     */
+    readonly encoder: IEncoder | undefined;
+    /**
+     * Delimiter used for object key paths.
+     */
+    readonly delimiter: string;
 
-    constructor(store: IKeyStorage) {
+    constructor(
+        {
+            store,
+            encoder,
+            delimiter = DELIMITER,
+        }: {
+            store: IKeyStorage;
+            encoder?: IEncoder;
+            delimiter?: string;
+        }
+    ) {
+        if (!delimiter) {
+            throw new Error('Delimiter mut not be empty');
+        }
+
         this.store = store;
+        this.encoder = encoder;
+        this.delimiter = delimiter;
     }
 
     /**
@@ -46,7 +82,7 @@ export default class DeepStorageAdapter {
         }
         // Unflatten
         let data: any = unflatten(flatData, {
-            delimiter: '/',
+            delimiter: this.delimiter,
         });
         let rootKey = this._rootKey(key);
         if (!data[rootKey]) {
@@ -74,7 +110,7 @@ export default class DeepStorageAdapter {
             let rootKey = this._rootKey(key);
             let data = { [rootKey]: value };
             let flatData: any = flatten(data, {
-                delimiter: '/',
+                delimiter: this.delimiter,
                 safe: true
             });
             let flatKeys: string[] = [];
@@ -138,15 +174,26 @@ export default class DeepStorageAdapter {
     }
 
     private _encodeValue(value: any): string | undefined {
-        if (typeof value === 'undefined' || typeof value === 'string') {
+        if (typeof value === 'undefined') {
             return value;
         }
-        return JSON.stringify({ [ENC_KEY]: value });
+        if (typeof value !== 'string') {
+            value = JSON.stringify({ [ENC_KEY]: value });
+        }
+        if (this.encoder) {
+            // External encode
+            value = this.encoder.encode(value);
+        }
+        return value;
     }
 
     private _decodeValue(data: string): any {
         if (typeof data === 'undefined' || data === null) {
             return undefined;
+        }
+        if (this.encoder) {
+            // External decode
+            data = this.encoder.decode(data);
         }
         if (!(data?.startsWith('{'))) {
             return data;
