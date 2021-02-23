@@ -1,6 +1,6 @@
 {
     "name": "deep-storage-adapter",
-    "version": "0.0.4",
+    "version": "0.1.0",
     "description": "Turns a flat key-value store into a pseudo-document store.",
     "main": "dist/index.js",
     "module": "dist/index.mjs",
