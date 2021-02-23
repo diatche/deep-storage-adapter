@@ -4,13 +4,17 @@
 
 Changes on `develop` will be listed here.
 
+### Features
+
+-   Added `merge` option to `setItem()`.
+
 ## 0.0.4
 
 ### Features
 
-- You can now specify an encoder.
+-   You can now specify an encoder.
 
 ### Breaking Changes
 
-- Modified `DeepStorageAdapter` constructor to use an options object.
-`new DeepStorageAdapter(store)` is now `new DeepStorageAdapter({ store })`.
+-   Modified `DeepStorageAdapter` constructor to use an options object.
+    `new DeepStorageAdapter(store)` is now `new DeepStorageAdapter({ store })`.
