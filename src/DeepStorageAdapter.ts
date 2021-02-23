@@ -1,4 +1,5 @@
 import flatten, { unflatten } from 'flat';
+import uniq from 'lodash.uniq';
 
 export const FLAT_TOKEN = '__flat__';
 export const FLAT_LIST = '__list__';
@@ -17,6 +18,10 @@ export interface IKeyStorage {
 export interface IEncoder {
     encode(value: string): string;
     decode(data: string): string;
+}
+
+export interface ISetItemOptions {
+    merge?: boolean;
 }
 
 /**
@@ -39,17 +44,15 @@ export default class DeepStorageAdapter {
      */
     readonly delimiter: string;
 
-    constructor(
-        {
-            store,
-            encoder,
-            delimiter = DELIMITER,
-        }: {
-            store: IKeyStorage;
-            encoder?: IEncoder;
-            delimiter?: string;
-        }
-    ) {
+    constructor({
+        store,
+        encoder,
+        delimiter = DELIMITER,
+    }: {
+        store: IKeyStorage;
+        encoder?: IEncoder;
+        delimiter?: string;
+    }) {
         if (!delimiter) {
             throw new Error('Delimiter mut not be empty');
         }
@@ -61,7 +64,7 @@ export default class DeepStorageAdapter {
 
     /**
      * Fetches, decodes and returns the value at the `key`.
-     * @param key 
+     * @param key
      */
     async getItem(key: string): Promise<any> {
         key = this._normalizeKey(key);
@@ -73,9 +76,11 @@ export default class DeepStorageAdapter {
             return await this._getValue(key);
         }
         // Gather values
-        let flatValues = await Promise.all(flatKeys.map(flatKey => {
-            return this._getValue(flatKey);
-        }));
+        let flatValues = await Promise.all(
+            flatKeys.map(flatKey => {
+                return this._getValue(flatKey);
+            }),
+        );
         let flatData: any = {};
         for (let i = 0; i < flatKeys.length; i++) {
             flatData[flatKeys[i]] = flatValues[i];
@@ -86,48 +91,59 @@ export default class DeepStorageAdapter {
         });
         let rootKey = this._rootKey(key);
         if (!data[rootKey]) {
-            throw new Error(`Unexpected data in KeyStore. Expected root key to be "${rootKey}", but got "${Object.keys(data)[0]}"`);
+            throw new Error(
+                `Unexpected data in KeyStore. Expected root key to be "${rootKey}", but got "${
+                    Object.keys(data)[0]
+                }"`,
+            );
         }
         return data[rootKey];
-    };
+    }
 
     /**
      * Encodes and stores the `value` at the `key`.
-     * @param key 
+     * @param key
      */
-    async setItem(key: string, value: any) {
+    async setItem(key: string, value: any, options?: ISetItemOptions) {
+        let { merge = false } = options || {};
         key = this._normalizeKey(key);
 
-        // Clear first
-        await this.removeItem(key);
+        if (!merge) {
+            // Clear first
+            await this.removeItem(key);
+        }
 
         if (typeof value === 'undefined') {
             return;
         }
-        
-        if (typeof value === 'object' && value !== null)  {
+
+        if (typeof value === 'object' && value !== null) {
             // Flatten object
             let rootKey = this._rootKey(key);
             let data = { [rootKey]: value };
             let flatData: any = flatten(data, {
                 delimiter: this.delimiter,
-                safe: true
+                safe: true,
             });
-            let flatKeys: string[] = [];
-            await Promise.all(Object.keys(flatData).map(key => {
-                flatKeys.push(key);
-                return this._saveValue(key, flatData[key]);
-            }));
+            let flatKeys = Object.keys(flatData);
+            await Promise.all(
+                flatKeys.map(key => this._saveValue(key, flatData[key])),
+            );
             let listKey = this._listKey(rootKey);
+            if (merge) {
+                // Keep existing keys
+                let existingFlatKeys = (await this._getFlatKeys(key)) || [];
+                flatKeys = uniq([...existingFlatKeys, ...flatKeys]);
+            }
             await this.store.setItem(listKey, JSON.stringify(flatKeys));
         } else {
             await this._saveValue(key, value);
         }
-    };
+    }
 
     /**
      * Removes the value at the `key`.
-     * @param key 
+     * @param key
      */
     async removeItem(key: string) {
         key = this._normalizeKey(key);
@@ -136,11 +152,7 @@ export default class DeepStorageAdapter {
         let flatKeys = (await this._getFlatKeys(key)) || [];
         let rootKey = this._rootKey(key);
         let listKey = this._listKey(rootKey);
-        let keys = flatKeys.concat([
-            key,
-            rootKey,
-            listKey,
-        ]);
+        let keys = flatKeys.concat([key, rootKey, listKey]);
         let promises = keys.map(k => this.store.removeItem(k));
 
         await Promise.all(promises);
@@ -195,7 +207,7 @@ export default class DeepStorageAdapter {
             // External decode
             data = this.encoder.decode(data);
         }
-        if (!(data?.startsWith('{'))) {
+        if (!data?.startsWith('{')) {
             return data;
         }
         let value: any = data;
