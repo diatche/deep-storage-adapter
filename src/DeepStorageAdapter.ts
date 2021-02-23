@@ -1,4 +1,5 @@
 import flatten, { unflatten } from 'flat';
+import uniq from 'lodash.uniq';
 
 export const FLAT_TOKEN = '__flat__';
 export const FLAT_LIST = '__list__';
@@ -17,6 +18,10 @@ export interface IKeyStorage {
 export interface IEncoder {
     encode(value: string): string;
     decode(data: string): string;
+}
+
+export interface ISetItemOptions {
+    merge?: boolean;
 }
 
 /**
@@ -99,11 +104,14 @@ export default class DeepStorageAdapter {
      * Encodes and stores the `value` at the `key`.
      * @param key
      */
-    async setItem(key: string, value: any) {
+    async setItem(key: string, value: any, options?: ISetItemOptions) {
+        let { merge = false } = options || {};
         key = this._normalizeKey(key);
 
-        // Clear first
-        await this.removeItem(key);
+        if (!merge) {
+            // Clear first
+            await this.removeItem(key);
+        }
 
         if (typeof value === 'undefined') {
             return;
@@ -117,14 +125,16 @@ export default class DeepStorageAdapter {
                 delimiter: this.delimiter,
                 safe: true,
             });
-            let flatKeys: string[] = [];
+            let flatKeys = Object.keys(flatData);
             await Promise.all(
-                Object.keys(flatData).map(key => {
-                    flatKeys.push(key);
-                    return this._saveValue(key, flatData[key]);
-                }),
+                flatKeys.map(key => this._saveValue(key, flatData[key])),
             );
             let listKey = this._listKey(rootKey);
+            if (merge) {
+                // Keep existing keys
+                let existingFlatKeys = (await this._getFlatKeys(key)) || [];
+                flatKeys = uniq([...existingFlatKeys, ...flatKeys]);
+            }
             await this.store.setItem(listKey, JSON.stringify(flatKeys));
         } else {
             await this._saveValue(key, value);

@@ -96,11 +96,25 @@ describe('DeepStorageAdapter', () => {
             await deepStore.setItem('foo', { bar: 123 });
             await deepStore.setItem('foo', { new: 'x' });
             let data = await deepStore.getItem('foo');
-            expect(data).toMatchObject({ new: 'x' });
+            expect(data).toEqual({ new: 'x' });
             expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.new');
             expect(Object.keys(store.data)).not.toContain(
                 FLAT_TOKEN + 'foo.bar',
             );
+        });
+
+        it('should merge values with merge option', async () => {
+            await deepStore.setItem('foo', { bar: 123, prop: 'abc' });
+            await deepStore.setItem(
+                'foo',
+                { new: 'x', prop: 'xyz' },
+                { merge: true },
+            );
+            let data = await deepStore.getItem('foo');
+            expect(data).toEqual({ bar: 123, new: 'x', prop: 'xyz' });
+            expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.new');
+            expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.bar');
+            expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.prop');
         });
 
         it('should return undefined when key not found', async () => {
