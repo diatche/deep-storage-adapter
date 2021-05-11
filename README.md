@@ -2,7 +2,7 @@
 
 Turns a flat key-value store into a pseudo-document store.
 
-![Node.js CI](https://github.com/diatche/deep-storage-adapter/workflows/Node.js%20CI/badge.svg)
+![Node.js CI](https://github.com/diatche/deep-storage-adapter/workflows/Node.js%20CI/badge.svg) [![CodeQL](https://github.com/diatche/deep-storage-adapter/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/diatche/deep-storage-adapter/actions/workflows/codeql-analysis.yml)
 
 *Note that this package is in early stages of development and there may be breaking changes within semantically compatible versions. See [change log](CHANGELOG.md).*
 
