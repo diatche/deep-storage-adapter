@@ -1,8 +1,8 @@
 # Change Log
 
-### develop
+### master
 
-Changes on `develop` will be listed here.
+Changes on `master` will be listed here.
 
 ### 0.1.0
 
