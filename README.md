@@ -15,19 +15,39 @@ _Note that this package is in early stages of development and there may be break
 yarn add deep-storage-adapter
 ```
 
+## Description
+
+The adapter does not store anything itself. It uses the specified storage in a way that allows setting and then retriving objects in their original form (as long as the values can be serialized).
+
+Supports both async and sync storage conforming to:
+
+```typescript
+export interface IKeyStorage {
+    getItem(key: string): Promise<any> | any;
+    setItem(key: string, val: string): Promise<void> | void;
+    removeItem(key: string): Promise<void> | void;
+    clear?: () => Promise<void> | void;
+}
+```
+
 ## Usage
+
+Note that even though sync stores are supported, the adapter's interface is async.
 
 ```javascript
 let deepStore = new DeepStorageAdapter({
-    store: sessionStorage,
+    store: AsyncStorage,
     encoder: require('base62/lib/ascii'), // See https://github.com/base62/base62.js
 });
 
-deepStore.setItem('item', {
-    foo: 'bar',
-    type: 2,
-});
-
-let item = deepStore.getItem('item');
-// item matches original object
+deepStore
+    .setItem('item', {
+        foo: 'bar',
+        type: 2,
+    })
+    .then(() => deepStore.getItem('item'))
+    .then(item => {
+        // item matches original object
+        console.log(JSON.stringify(item));
+    });
 ```
