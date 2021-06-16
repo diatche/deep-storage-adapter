@@ -117,6 +117,42 @@ describe('DeepStorageAdapter', () => {
             expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.prop');
         });
 
+        it('should merge values with merge option overriding primite with object', async () => {
+            await deepStore.setItem('foo', { bar: 123, prop: 'abc' });
+            await deepStore.setItem(
+                'foo',
+                { new: 'x', prop: { zyx: true } },
+                { merge: true },
+            );
+            let data = await deepStore.getItem('foo');
+            expect(data).toEqual({ bar: 123, new: 'x', prop: { zyx: true } });
+            expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.new');
+            expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.bar');
+            expect(Object.keys(store.data)).not.toContain(
+                FLAT_TOKEN + 'foo.prop',
+            );
+            expect(Object.keys(store.data)).toContain(
+                FLAT_TOKEN + 'foo.prop.xyz',
+            );
+        });
+
+        it('should merge values with merge option overriding object with primitive', async () => {
+            await deepStore.setItem('foo', { bar: 123, prop: { zyx: true } });
+            await deepStore.setItem(
+                'foo',
+                { new: 'x', prop: 'abc' },
+                { merge: true },
+            );
+            let data = await deepStore.getItem('foo');
+            expect(data).toEqual({ bar: 123, new: 'x', prop: 'abc' });
+            expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.new');
+            expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.bar');
+            expect(Object.keys(store.data)).toContain(FLAT_TOKEN + 'foo.prop');
+            expect(Object.keys(store.data)).not.toContain(
+                FLAT_TOKEN + 'foo.prop.xyz',
+            );
+        });
+
         it('should return undefined when key not found', async () => {
             let x = await deepStore.getItem('foo');
             expect(x).toBeUndefined();
